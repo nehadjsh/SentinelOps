@@ -1,0 +1,6 @@
+---
+# vars file for roles/k3s
+
+k3s_version: "v1.28.7+k3s1"
+k3s_install_script_url: "https://get.k3s.io"
+k3s_user: "{{ monitoring_user }}"

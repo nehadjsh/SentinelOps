@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    volumes:
+      - {{ monitoring_base_path }}/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    ports:
+      - "9093:9093"
+    networks:
+      - monitoring-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - {{ monitoring_base_path }}/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - {{ monitoring_base_path }}/prometheus/prometheus_rules.yml:/etc/prometheus/prometheus_rules.yml
+      - {{ monitoring_base_path }}/data/prometheus:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoring-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD={{ grafana_admin_password }}
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - {{ monitoring_base_path }}/data/grafana:/var/lib/grafana
+    networks:
+      - monitoring-network
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - {{ monitoring_base_path }}/loki/loki-config.yml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring-network
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    restart: unless-stopped
+    volumes:
+      - /var/log:/var/log
+      - {{ monitoring_base_path }}/promtail/promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - monitoring-network
+
+networks:
+  monitoring-network:
+    driver: bridge

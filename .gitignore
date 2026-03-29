@@ -1,0 +1,45 @@
+# ==========================================
+# Terraform Specific
+# ==========================================
+
+.terraform/
+.terraform.lock.hcl
+
+
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+
+
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+
+# ==========================================
+# Ansible Specific
+# ==========================================
+
+*.retry
+
+
+ansible/roles/monitoring/templates/secrets.yml
+
+# ==========================================
+# SSH & Security
+# ==========================================
+
+*.pem
+*.key
+*.pub
+id_rsa*
+
+# ==========================================
+# OS & IDE Specific
+# ==========================================
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.bak
+node_modules/

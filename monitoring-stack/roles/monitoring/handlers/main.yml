@@ -1,0 +1,7 @@
+---
+# handlers file for roles/monitoring
+- name: restart monitoring
+  community.docker.docker_compose:
+    project_src: "{{ monitoring_base_path }}"
+    state: present
+    restarted: yes

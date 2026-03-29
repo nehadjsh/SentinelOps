@@ -1,0 +1,9 @@
+---
+# vars file for roles/common
+common_packages:
+- ntp
+- git 
+- vim 
+- unzip
+- curl
+- python3-pip

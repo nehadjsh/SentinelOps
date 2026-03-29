@@ -1,0 +1,60 @@
+---
+# tasks file for roles/monitoring
+- name: Create monitoring sub-directories on target machine
+  become: yes
+  file:
+    path: "{{ monitoring_base_path }}/{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ monitoring_user }}"
+    group: "{{ monitoring_group }}"
+  loop:
+    - prometheus
+    - alertmanager
+    - grafana
+    - loki
+    - promtail
+    - data/prometheus
+    - data/grafana
+
+- name: Deploy all configuration templates
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ monitoring_base_path }}/{{ item.dest }}"
+    mode: '0644'
+    owner: "{{ monitoring_user }}"
+    group: "{{ monitoring_group }}"
+  loop:
+    - { src: 'prometheus.yml.j2', dest: 'prometheus/prometheus.yml' }
+    - { src: 'prometheus_rules.yml.j2', dest: 'prometheus/prometheus_rules.yml' }
+    - { src: 'alertmanager.yml.j2', dest: 'alertmanager/alertmanager.yml' }
+    - { src: 'loki-config.yml.j2', dest: 'loki/loki-config.yml' }
+    - { src: 'promtail-config.yml.j2', dest: 'promtail/promtail-config.yml' }
+    - { src: 'docker-compose.yml.j2', dest: 'docker-compose.yml' }
+  notify: restart monitoring
+
+- name: Start Monitoring Stack via Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ monitoring_base_path }}"
+    state: present
+    remove_orphans: yes
+
+- name: Create backup directory
+  file:
+    path: "{{ backup_path }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ monitoring_user }}"
+
+- name: Deploy backup script
+  template:
+    src: backup-script.sh.j2
+    dest: "{{ monitoring_base_path }}/backup-monitoring.sh"
+    mode: '0755'
+
+- name: Schedule daily backup cron job
+  cron:
+    name: "Daily Monitoring Backup"
+    minute: "0"
+    hour: "2"
+    job: "/bin/bash {{ monitoring_base_path }}/backup-monitoring.sh > /dev/null 2>&1"

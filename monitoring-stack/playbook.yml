@@ -1,0 +1,40 @@
+---
+- name: Deploy Full Monitoring Stack and K3s Lab
+  hosts: monitoring
+  become: yes
+  
+  vars_files:
+    - roles/monitoring/vars/main.yml
+    - roles/monitoring/templates/secrets.yml
+
+  pre_tasks:
+    - name: Ensure Python3 is installed for Ansible
+      ansible.builtin.apt:
+        name: python3
+        state: present
+        update_cache: yes
+
+  roles:
+    - role: common
+      tags: ["setup", "common"]
+      
+    - role: docker
+      tags: ["infra", "docker"]
+      
+    - role: k3s
+      tags: ["k8s", "k3s"]
+      when: install_k3s | default(true) 
+
+    - role: monitoring
+      tags: ["app", "monitoring"]
+
+  post_tasks:
+    - name: Health Check - Check if Grafana is running
+      ansible.builtin.uri:
+        url: "http://localhost:3000/api/health"
+        status_code: 200
+      register: result
+      until: result.status == 200
+      retries: 5
+      delay: 10
+      ignore_errors: yes

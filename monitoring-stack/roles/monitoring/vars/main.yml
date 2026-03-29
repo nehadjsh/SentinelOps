@@ -1,0 +1,14 @@
+---
+# vars file for roles/monitoring
+monitoring_base_path: "/opt/monitoring"
+monitoring_user: "monitor"
+monitoring_group: "monitor"
+
+vault_slack_webhook_url: "https://hooks.slack.com/services/T000/B000/XXXX"
+vault_grafana_admin_password: "admin" 
+
+slack_webhook_url: "{{ vault_slack_webhook_url }}"
+grafana_admin_password: "{{ vault_grafana_admin_password }}"
+
+backup_path: "/opt/monitoring/backups"
+backup_retention_days: 7
