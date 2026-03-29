@@ -1,0 +1,45 @@
+name: "SentinelOps: Automated Cloud-Native Deployment"
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # --- Permissions required for OIDC Token Request ---
+    permissions:
+      id-token: write # Required for requesting the JWT
+      contents: read  # Required for actions/checkout
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # --- Keyless Authentication via OIDC ---
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # Using the Role ARN created by Terraform
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/SentinelOps-GitHub-OIDC-Role
+          aws-region: ${{ vars.AWS_REGION }}
+
+
+      - name: Terraform Apply
+        id: terraform
+        run: |
+          cd terraform
+          terraform init
+          terraform apply -auto-approve -var="github_repo=${{ github.repository }}" -var="allowed_ip=${{ secrets.MY_IP }}" -var="ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}"
+          echo "SERVER_IP=$(terraform output -raw monitoring_server_public_ip)" >> $GITHUB_ENV
+
+      - name: Prepare Ansible Inventory
+        run: |
+          sed "s/\${MONITORING_IP}/${{ env.SERVER_IP }}/g" ansible/inventory/hosts.tpl > ansible/inventory/hosts
+
+      - name: Run Ansible Playbook
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem && chmod 600 private_key.pem
+          ansible-playbook -i ansible/inventory/hosts ansible/playbook.yml --private-key private_key.pem
